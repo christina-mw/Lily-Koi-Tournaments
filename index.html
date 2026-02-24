@@ -5,22 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Volleyball Tournament Manager</title>
   <style>
-    :root { --border:#ddd; --muted:#666; --bg:#fafafa; }
+:root { --border:#ddd; --muted:#666; --bg:#fafafa; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:var(--bg); }
     header { padding:18px 16px; border-bottom:1px solid var(--border); background:#fff; position:sticky; top:0; z-index:10; }
     header h1 { margin:0; font-size:18px; }
     header p { margin:6px 0 0; color:var(--muted); font-size:13px; }
-    main { max-width:1200px; margin:0 auto; padding:16px; display:grid; gap:16px; grid-template-columns: 360px 1fr; }
-    @media (max-width: 980px){ main { grid-template-columns: 1fr; } }
-
+    main { max-width:1500px; margin:0 auto; padding:16px; display:block; }
+    
     .card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
     .card h2 { margin:0 0 10px; font-size:15px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
     label { font-size:12px; color:var(--muted); display:block; margin-bottom:6px; }
-    input[type="text"], input[type="number"], select {
+    input[type="text"], select {
       padding:10px 10px; border:1px solid var(--border); border-radius:10px; font-size:14px; background:#fff;
     }
-    input[type="number"]{ width:110px; }
+    input[type="text"]{ width:110px; }
     button {
       padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#fff; cursor:pointer; font-weight:600;
     }
@@ -35,7 +34,13 @@
     .teamname { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
     .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media (max-width: 980px){ .grid2 { grid-template-columns:1fr; } }
+    
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+@media (max-width: 980px){ .grid2 { grid-template-columns:1fr; } }
 
     table { width:100%; border-collapse: collapse; font-size:13px; }
     th, td { border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
@@ -62,111 +67,191 @@
     .divider { height:1px; background:var(--border); margin:10px 0; }
     .toast { position:fixed; right:12px; bottom:12px; background:#111; color:#fff; padding:10px 12px; border-radius:10px; opacity:0; transform:translateY(8px); transition:.2s; }
     .toast.show { opacity:1; transform:translateY(0); }
+  
+
+/* Navigation tabs + pages */
+.tabs { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.tabs button { border-radius:999px; }
+.tabs button.active { background:#111; color:#fff; border-color:#111; }
+.page { display:none; margin-top:16px; }
+.page.active { display:block; }
+.pageGrid { display:grid; gap:16px; grid-template-columns: 360px 1fr; }
+@media (max-width: 980px){ .pageGrid { grid-template-columns: 1fr; } }
+.pageGridOne { display:block; }
+input[type="text"]{ width:auto; }
   </style>
 </head>
 <body>
 <header>
   <h1>Volleyball Tournament Manager</h1>
-  <p>Flexible pools + auto-updating standings + single-elim bracket (with byes). Data saves in your browser.</p>
+  <p>Setup → Pools → Bracket. Data saves in your browser.</p>
 </header>
 
 <main>
-  <!-- LEFT: Setup -->
-  <section class="card" id="setupCard">
-    <h2>1) Teams</h2>
-    <div class="row">
-      <div style="flex:1; min-width: 220px;">
-        <label>Add team name</label>
-        <input id="teamName" type="text" placeholder="e.g., Lily Kois A" />
-      </div>
-      <div style="padding-top:22px;">
-        <button class="primary" id="addTeamBtn">Add</button>
-      </div>
+  <section class="card">
+    <div class="tabs" role="tablist" aria-label="Tournament sections">
+      <button id="tab-setup" class="active" type="button">Setup</button>
+      <button id="tab-pools" type="button">Pools</button>
+      <button id="tab-bracket" type="button">Bracket</button>
+      <span style="flex:1"></span>
+      <button id="resetBtnTop" class="danger" type="button">Reset all</button>
     </div>
-
-    <div class="divider"></div>
-
-    <div class="sectionTitle">
-      <h2 style="margin:0;">Team list</h2>
-      <p class="small"><span id="teamCount">0</span> teams</p>
-    </div>
-
-    <div id="teamList" class="small muted" style="margin-top:8px;">No teams yet.</div>
-
-    <div class="divider"></div>
-
-    <h2>2) Pool setup</h2>
-    <div class="row">
-      <div>
-        <label># of pools</label>
-        <input id="poolCount" type="number" min="1" value="2" />
-      </div>
-      <div>
-        <label>Assign method</label>
-        <select id="assignMethod">
-          <option value="snake">Snake seed (balanced)</option>
-          <option value="random">Random</option>
-          <option value="ordered">In order entered</option>
-        </select>
-      </div>
-    </div>
-    <p class="small" style="margin:10px 0 0;">
-      Snake seeding distributes team #1, #2, #3... across pools to balance them.
-    </p>
-
-    <div class="divider"></div>
-
-    <h2>3) Bracket setup</h2>
-    <div class="row">
-      <div>
-        <label>Advance per pool</label>
-        <input id="advancePerPool" type="number" min="1" value="2" />
-      </div>
-      <div class="pill">
-        <span class="small">Bracket seeds from standings</span>
-      </div>
-    </div>
-    <p class="small" style="margin:10px 0 0;">
-      Example: 2 pools, advance 2 per pool → 4-team bracket.
-    </p>
-
-    <div class="divider"></div>
-
-    <div class="row">
-      <button class="primary" id="generateBtn">Generate pools + matches</button>
-      <button class="danger" id="resetBtn">Reset all</button>
-    </div>
-    <p class="small" style="margin-top:10px;">
-      Tip: enter pool scores first, then click “Build bracket from standings”.
-    </p>
+    <p class="small" style="margin:10px 0 0;">Tip: You can move between pages anytime. Scores/standings persist.</p>
   </section>
 
-  <!-- RIGHT: Tournament -->
-  <section class="card">
-    <div class="grid2">
-      <div>
+  <!-- SETUP PAGE -->
+  <section id="page-setup" class="page active" role="tabpanel" aria-labelledby="tab-setup">
+    <div class="pageGrid">
+      <section class="card">
+        <h2>1) Teams</h2>
+        <div class="row">
+          <div style="flex:1; min-width: 220px;">
+            <label>Add team name</label>
+            <input id="teamName" type="text" placeholder="e.g., Lily Kois A" />
+          </div>
+          <div style="padding-top:22px;">
+            <button class="primary" id="addTeamBtn" type="button">Add</button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="sectionTitle">
+          <h2 style="margin:0;">Team list</h2>
+          <p class="small"><span id="teamCount">0</span> teams</p>
+        </div>
+        <div id="teamList" class="small muted" style="margin-top:8px;">No teams yet.</div>
+      </section>
+
+      <section class="card">
+        <h2>2) Pool setup</h2>
+        <div class="row">
+          <div>
+            <label># of pools</label>
+            <input id="poolCount" type="text" inputmode="numeric" pattern="[0-9]*" value="2" />
+          </div>
+          <div>
+            <label>Assign method</label>
+            <select id="assignMethod">
+              <option value="snake">Snake seed (balanced)</option>
+              <option value="random">Random</option>
+              <option value="ordered">In order entered</option>
+            </select>
+          </div>
+          <div>
+            <label>Start time</label>
+            <input id="startTime" type="text" placeholder="9:00 AM" value="9:00 AM" />
+          </div>
+          <div>
+            <label>Match interval (min)</label>
+            <input id="matchInterval" type="text" inputmode="numeric" pattern="[0-9]*" value="45" />
+          </div>
+        </div>
+        <p class="small" style="margin:10px 0 0;">Snake seeding distributes team #1, #2, #3... across pools to balance them.</p>
+
+        <div class="divider"></div>
+
+        <div class="row">
+          <button class="primary" id="generateBtn" type="button">Generate pools + matches</button>
+        </div>
+        <p class="small" style="margin-top:10px;">
+          After generating, go to <b>Pools</b> to enter scores and see standings.
+        </p>
+      </section>
+    </div>
+  </section>
+
+<!-- POOLS PAGE -->
+  <section id="page-pools" class="page" role="tabpanel" aria-labelledby="tab-pools">
+    <div class="pageGridOne">
+      <section class="card">
         <div class="sectionTitle">
           <h2 style="margin:0;">Pools</h2>
           <p class="small" id="poolsMeta"></p>
         </div>
-        <div id="poolsArea" class="small muted" style="margin-top:8px;">
-          Generate pools to begin.
-        </div>
-      </div>
+        <p class="small" style="margin:10px 0 0;">
+          Enter scores below. Standings update when you leave a score box (click outside or press Enter).
+        </p>
+        <div id="poolsArea" class="small muted" style="margin-top:12px;">Generate pools to begin (from the Setup page).</div>
+      </section>
 
-      <div>
-        <div class="sectionTitle">
-          <h2 style="margin:0;">Bracket</h2>
-          <p class="small" id="bracketMeta"></p>
+      <section class="card">
+        <h2>Next</h2>
+        <ul class="small">
+          <li>When pool play is done, go to <b>Bracket</b> to build single- or double-elim from standings.</li>
+          <li>If you need to change teams or pool count, go back to <b>Setup</b> and generate again.</li>
+        </ul>
+      </section>
+    </div>
+  </section>
+
+<!-- BRACKET PAGE -->
+  <section id="page-bracket" class="page" role="tabpanel" aria-labelledby="tab-bracket">
+    <div class="pageGrid">
+      <section class="card">
+        <h2>3) Bracket setup</h2>
+        <div class="row">
+          <div>
+            <label>Advance per pool</label>
+            <input id="advancePerPool" type="text" inputmode="numeric" pattern="[0-9]*" value="2" />
+          </div>
+          <div>
+            <label>Bracket type</label>
+            <select id="bracketType">
+              <option value="single" selected>Single elimination</option>
+              <option value="double">Double elimination</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="row" style="margin-top:10px;">
+          <div>
+            <label>Bracket start time</label>
+            <input id="bracketStartTime" type="text" placeholder="1:45 PM" value="1:45 PM" />
+          </div>
+          <div>
+            <label>Match interval (min)</label>
+            <input id="bracketInterval" type="text" inputmode="numeric" pattern="[0-9]*" value="45" />
+          </div>
+          <div>
+            <label># of courts</label>
+            <input id="courtCount" type="text" inputmode="numeric" pattern="[0-9]*" value="4" />
+          </div>
+        </div>
+
+<p class="small" style="margin:10px 0 0;">Build bracket from current pool standings.</p>
+
+        <div class="divider"></div>
+
+        <div class="row" style="margin:10px 0;">
+          <div class="row">
+          <div class="pill"><span class="small">Build brackets from current pool standings</span></div>
         </div>
         <div class="row" style="margin:10px 0;">
-          <button id="buildBracketBtn">Build bracket from standings</button>
-          <button id="clearBracketBtn" class="danger">Clear bracket</button>
+          <button id="buildBracketsBtn" type="button">Build Gold + Silver brackets</button>
+          <button id="clearBracketsBtn" class="danger" type="button">Clear brackets</button>
         </div>
-        <div id="bracketArea" class="small muted">
-          No bracket yet.
+        <p class="small">Scores commit when you leave a box (click outside) or press Enter.</p>
+      </section>
+
+      <section class="card">
+        <div class="stack">
+          <div>
+            <div class="sectionTitle">
+              <h2 style="margin:0;">Gold bracket</h2>
+              <p class="small" id="goldBracketMeta"></p>
+            </div>
+            <div id="goldBracketArea" class="small muted" style="margin-top:8px;">No gold bracket yet.</div>
+          </div>
+          <div>
+            <div class="sectionTitle">
+              <h2 style="margin:0;">Silver bracket</h2>
+              <p class="small" id="silverBracketMeta"></p>
+            </div>
+            <div id="silverBracketArea" class="small muted" style="margin-top:8px;">No silver bracket yet.</div>
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   </section>
 </main>
@@ -177,28 +262,180 @@
 /* =========================
    State + Persistence
 ========================= */
-const STORAGE_KEY = "vb_tournament_manager_v1";
+// Tournament id comes from URL like ?t=easter-26 (defaults to "main")
+const tournamentId = new URLSearchParams(location.search).get("t") || "main";
+
+// Local backup key (per tournament)
+const STORAGE_KEY = "vb_tournament_manager_v1_" + tournamentId;
+
+// ---- Firebase setup (Firestore live sync) ----
+// This file expects firebase-app-compat + firebase-firestore-compat scripts in <head>.
+const firebaseConfig = {
+  apiKey: "AIzaSyBE5nyQ9cVmlEg11Pf15c0FggkSxvvRlME",
+  authDomain: "lily-koi-database-3d607.firebaseapp.com",
+  projectId: "lily-koi-database-3d607",
+  storageBucket: "lily-koi-database-3d607.firebasestorage.app",
+  messagingSenderId: "398155183478",
+  appId: "1:398155183478:web:90f493b80756ea3aec3657",
+};
+
+let db = null;
+let docRef = null;
+let firebaseEnabled = false;
+
+// Prevent feedback loops: remote update -> render -> save -> remote update...
+let suppressSave = false;
+
+// Debounce cloud writes (Firestore write limits + nicer UX)
+let saveTimer = null;
 
 const state = {
   teams: [],                 // [{id, name}]
   pools: [],                 // [{name, teamIds:[]}]
-  poolMatches: {},           // poolIndex -> [{aId,bId, aScore, bScore, id}]
-  bracket: null              // { rounds: [ [match, match...], ... ] }
+  poolMatches: {},         // poolIndex -> [{aId,bId, refId, offId, aScore, bScore, id}]
+  brackets: { gold: null, silver: null },
+  activeBracket: "gold",
+  schedule: {                // pool match time settings (shared across pools)
+    startMinutes: 540,       // 9:00 AM
+    intervalMinutes: 45
+  },
+  bracketSchedule: {
+    startMinutes: 13*60 + 45,   // 1:45 PM default
+    intervalMinutes: 45,
+    courtCount: 4
+  }
 };
 
 function uid() { return Math.random().toString(16).slice(2) + Date.now().toString(16); }
 
-function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function saveLocal() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
 }
-function load() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return;
+
+function loadLocal() {
+  const raw = (()=>{ try { return localStorage.getItem(STORAGE_KEY); } catch { return null; } })();
+  if (!raw) return false;
   try {
     const parsed = JSON.parse(raw);
     Object.assign(state, parsed);
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 }
+
+function normalizeStateAfterLoad() {
+  // Backward-compat: migrate older saved state.bracket -> brackets.gold
+  if (!state.brackets) state.brackets = { gold: null, silver: null };
+  if (state.bracket && !state.brackets.gold) {
+    if (!state.bracket.type && state.bracket.rounds) state.bracket.type = "single";
+    state.brackets.gold = state.bracket;
+    state.bracket = null;
+  }
+  if (!state.activeBracket) state.activeBracket = "gold";
+
+  // Ensure any stored scores that became strings are treated as numbers/null
+  for (const k of Object.keys(state.poolMatches || {})) {
+    for (const m of (state.poolMatches[k] || [])) {
+      m.aScore = (m.aScore === "" || m.aScore == null) ? null : Number(m.aScore);
+      m.bScore = (m.bScore === "" || m.bScore == null) ? null : Number(m.bScore);
+      if (!Number.isFinite(m.aScore)) m.aScore = null;
+      if (!Number.isFinite(m.bScore)) m.bScore = null;
+    }
+  }
+
+  // Schedule defaults
+  if (!state.schedule) {
+    state.schedule = { startMinutes: 540, intervalMinutes: 45 };
+  } else {
+    state.schedule.startMinutes = Number(state.schedule.startMinutes);
+    state.schedule.intervalMinutes = Number(state.schedule.intervalMinutes);
+    if (!Number.isFinite(state.schedule.startMinutes)) state.schedule.startMinutes = 540;
+    if (!Number.isFinite(state.schedule.intervalMinutes) || state.schedule.intervalMinutes <= 0) state.schedule.intervalMinutes = 45;
+  }
+
+  // Bracket schedule defaults
+  if (!state.bracketSchedule) {
+    state.bracketSchedule = { startMinutes: 13*60 + 45, intervalMinutes: 45, courtCount: 4 };
+  } else {
+    state.bracketSchedule.startMinutes = Number(state.bracketSchedule.startMinutes);
+    state.bracketSchedule.intervalMinutes = Number(state.bracketSchedule.intervalMinutes);
+    state.bracketSchedule.courtCount = Number(state.bracketSchedule.courtCount);
+    if (!Number.isFinite(state.bracketSchedule.startMinutes)) state.bracketSchedule.startMinutes = 13*60 + 45;
+    if (!Number.isFinite(state.bracketSchedule.intervalMinutes) || state.bracketSchedule.intervalMinutes <= 0) state.bracketSchedule.intervalMinutes = 45;
+    if (!Number.isFinite(state.bracketSchedule.courtCount) || state.bracketSchedule.courtCount < 1) state.bracketSchedule.courtCount = 4;
+  }
+}
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    docRef = db.collection("tournaments").doc(tournamentId);
+    firebaseEnabled = true;
+    return true;
+  } catch (e) {
+    console.warn("Firebase init failed:", e);
+    firebaseEnabled = false;
+    return false;
+  }
+}
+
+// Unified save() used throughout the app (local + cloud)
+function save() {
+  if (suppressSave) return;
+
+  // Always keep a local backup (also helps offline use)
+  saveLocal();
+
+  if (!firebaseEnabled || !docRef) return;
+
+  // Debounce cloud writes
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    // clone to strip functions/undefined
+    const payload = JSON.parse(JSON.stringify(state));
+    docRef.set(payload, { merge: true })
+      .catch(err => console.warn("Firestore save failed:", err));
+  }, 250);
+}
+
+// Unified load() called on init
+function load() {
+  // Load local first so UI shows something immediately
+  loadLocal();
+  normalizeStateAfterLoad();
+
+  // Start Firebase live sync
+  if (!initFirebase()) {
+    return; // local-only
+  }
+
+  docRef.onSnapshot((doc) => {
+    if (!doc.exists) {
+      // Seed cloud with whatever we currently have (likely local)
+      save();
+      return;
+    }
+    try {
+      suppressSave = true;
+      Object.assign(state, doc.data());
+      normalizeStateAfterLoad();
+      suppressSave = false;
+
+      // keep local in sync too
+      saveLocal();
+
+      renderAll();
+    } catch (e) {
+      suppressSave = false;
+      console.warn("Snapshot apply failed:", e);
+    }
+  }, (err) => {
+    console.warn("Firestore snapshot error:", err);
+  });
+}
+
 function toast(msg){
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -212,6 +449,75 @@ function toast(msg){
 const $ = (id) => document.getElementById(id);
 
 function teamById(id){ return state.teams.find(t => t.id === id) || null; }
+
+function digitsOnlyValue(v){
+  return String(v ?? "").replace(/[^0-9]/g, "");
+}
+
+function digitsOnly(el){
+  const v = digitsOnlyValue(el.value);
+  if (el.value !== v) el.value = v;
+}
+
+
+function parseTimeToMinutes(str){
+  const s = String(str || "").trim().toLowerCase();
+  if (!s) return null;
+
+  // Match: h:mm, hh:mm, with optional am/pm (with or without space)
+  const m = s.match(/^\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*$/i);
+  if (!m) return null;
+
+  let h = parseInt(m[1], 10);
+  let min = m[2] ? parseInt(m[2], 10) : 0;
+  const ap = m[3];
+
+  if (!Number.isFinite(h) || !Number.isFinite(min) || min < 0 || min > 59) return null;
+
+  if (ap) {
+    if (h < 1 || h > 12) return null;
+    if (ap === "am") {
+      if (h === 12) h = 0;
+    } else {
+      if (h !== 12) h += 12;
+    }
+  } else {
+    // 24-hour style
+    if (h < 0 || h > 23) return null;
+  }
+
+  return h * 60 + min;
+}
+
+function formatMinutesToTime(mins){
+  let m = Number(mins);
+  if (!Number.isFinite(m)) return "";
+  m = ((m % (24*60)) + (24*60)) % (24*60);
+  const h24 = Math.floor(m / 60);
+  const mm = Math.floor(m % 60);
+  const ap = h24 >= 12 ? "PM" : "AM";
+  let h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12}:${String(mm).padStart(2,"0")} ${ap}`;
+}
+
+function getActiveBracketObj() {
+  return (state.brackets && state.brackets[state.activeBracket]) ? state.brackets[state.activeBracket] : null;
+}
+function setActiveBracketTier(tier) {
+  if (tier !== "gold" && tier !== "silver") return;
+  state.activeBracket = tier;
+  save();
+  renderAll();
+}
+function forEachBracket(fn) {
+  if (!state.brackets) return;
+  ["gold","silver"].forEach((k) => {
+    const b = state.brackets[k];
+    if (b) fn(b, k);
+  });
+}
+
 
 /* =========================
    Team Management
@@ -243,16 +549,37 @@ function renderTeamList() {
       Object.keys(state.poolMatches).forEach(k => {
         state.poolMatches[k] = (state.poolMatches[k] || []).filter(m => m.aId !== id && m.bId !== id);
       });
-      if (state.bracket) {
-        for (const round of state.bracket.rounds) {
-          for (const m of round) {
-            if (m.aId === id) m.aId = null;
-            if (m.bId === id) m.bId = null;
-            m.aScore = null; m.bScore = null;
-            m.winnerId = null;
+      forEachBracket((b) => {
+        // single-elim stored as {type:"single", rounds:[...]} or double {type:"double", wb, lb, gf}
+        if (b.type === "single" && b.rounds) {
+          for (const round of b.rounds) {
+            for (const m of round) {
+              if (m.aId === id) m.aId = null;
+              if (m.bId === id) m.bId = null;
+              m.aScore = null; m.bScore = null;
+              m.winnerId = null;
+            }
+          }
+        } else if (b.type === "double") {
+          const allRounds = [].concat(b.wb || [], b.lb || []);
+          for (const round of allRounds) {
+            for (const m of round) {
+              if (m.aId === id) m.aId = null;
+              if (m.bId === id) m.bId = null;
+              m.aScore = null; m.bScore = null;
+              m.winnerId = null;
+            }
+          }
+          if (b.gf) {
+            for (const m of b.gf) {
+              if (m.aId === id) m.aId = null;
+              if (m.bId === id) m.bId = null;
+              m.aScore = null; m.bScore = null;
+              m.winnerId = null;
+            }
           }
         }
-      }
+      });
 
       save();
       renderAll();
@@ -287,6 +614,20 @@ function generatePools() {
 
   const method = $("assignMethod").value;
 
+
+  // Schedule settings (shared across pools)
+  const startInput = $("startTime") ? $("startTime").value : "9:00 AM";
+  const parsedStart = parseTimeToMinutes(startInput);
+  const startMinutes = (parsedStart == null) ? 540 : parsedStart;
+
+  const intervalInput = $("matchInterval") ? digitsOnlyValue($("matchInterval").value) : "45";
+  const intervalMinutes = Math.max(1, parseInt(intervalInput || "45", 10) || 45);
+
+  state.schedule = { startMinutes, intervalMinutes };
+  if ($("startTime")) $("startTime").value = formatMinutesToTime(startMinutes);
+  if ($("matchInterval")) $("matchInterval").value = String(intervalMinutes);
+
+
   // Start pools
   state.pools = Array.from({length: poolCount}, (_, i) => ({
     name: `Pool ${String.fromCharCode(65 + i)}`,
@@ -319,20 +660,68 @@ function generatePools() {
   state.pools.forEach((p, poolIdx) => {
     const ids = p.teamIds;
     const matches = [];
-    for (let i=0; i<ids.length; i++){
-      for (let j=i+1; j<ids.length; j++){
-        matches.push({ id: uid(), aId: ids[i], bId: ids[j], aScore: null, bScore: null });
+
+    
+    // Special 4-team pool format (matches + Refs/Off rotation like your sheet):
+    // Match order (by seed index within the pool): 1v4, 2v3, 1v3, 2v4, 3v4, 1v2
+    // Refs/Off per match:
+    //  1) 1v4  refs=3  off=2
+    //  2) 2v3  refs=4  off=1
+    //  3) 1v3  refs=2  off=4
+    //  4) 2v4  refs=3  off=1
+    //  5) 3v4  refs=1  off=2
+    //  6) 1v2  refs=4  off=3
+    if (ids.length === 4) {
+      const plan = [
+        { a: 0, b: 3, ref: 2, off: 1 },
+        { a: 1, b: 2, ref: 3, off: 0 },
+        { a: 0, b: 2, ref: 1, off: 3 },
+        { a: 1, b: 3, ref: 2, off: 0 },
+        { a: 2, b: 3, ref: 0, off: 1 },
+        { a: 0, b: 1, ref: 3, off: 2 },
+      ];
+
+      for (const m of plan) {
+        matches.push({
+          id: uid(),
+          aId: ids[m.a],
+          bId: ids[m.b],
+          refId: ids[m.ref],
+          offId: ids[m.off],
+          aScore: null,
+          bScore: null
+        });
+      }
+    } else {
+
+      // Default: standard round-robin pairings (no ref/off assignment)
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          matches.push({
+            id: uid(),
+            aId: ids[i],
+            bId: ids[j],
+            refId: null,
+            offId: null,
+            aScore: null,
+            bScore: null
+          });
+        }
       }
     }
+
     state.poolMatches[poolIdx] = matches;
   });
 
-  // Clear bracket whenever pools regenerate
-  state.bracket = null;
+  // Clear brackets whenever pools regenerate
+  if (!state.brackets) state.brackets = { gold: null, silver: null };
+  state.brackets.gold = null;
+  state.brackets.silver = null;
 
   save();
   renderAll();
   toast("Pools generated");
+  if (typeof setActivePage === "function") setActivePage("pools");
 }
 
 function poolStandings(poolIdx){
@@ -378,35 +767,50 @@ function poolStandings(poolIdx){
 /* =========================
    Bracket (Single Elim)
 ========================= */
-function buildBracketFromStandings(){
+
+function buildBracketFromStandingsTier(tier){
   if (!state.pools || state.pools.length === 0) {
     alert("Generate pools first.");
     return;
   }
-  let adv = parseInt($("advancePerPool").value, 10);
-  if (!Number.isFinite(adv) || adv < 1) adv = 1;
+
+  // N = how many advance to Gold, and how many drop to Silver
+  let adv = parseInt($("advancePerPool")?.value, 10);
+  if (!Number.isFinite(adv) || adv < 1) adv = 2;
 
   const bracketType = $("bracketType")?.value || "single";
 
-  // pick top adv from each pool
   const qualifiers = [];
   state.pools.forEach((p, poolIdx) => {
     const standings = poolStandings(poolIdx);
-    const top = standings.slice(0, Math.min(adv, standings.length));
-    top.forEach((s, i) => qualifiers.push({
-      teamId: s.teamId,
-      poolIdx,
-      rankInPool: i+1,
-      w: s.w, pd: s.pd, pf: s.pf
-    }));
+
+    let picked = [];
+    if (tier === "gold") {
+      picked = standings.slice(0, Math.min(adv, standings.length));
+      picked.forEach((s, i) => qualifiers.push({
+        teamId: s.teamId,
+        poolIdx,
+        rankInPool: i + 1,
+        w: s.w, pd: s.pd, pf: s.pf
+      }));
+    } else {
+      // Silver = bottom N, but seed "best of the bottom" higher (e.g., 3rd above 4th)
+      const bottom = standings.slice(Math.max(standings.length - adv, 0)).reverse();
+      bottom.forEach((s, i) => qualifiers.push({
+        teamId: s.teamId,
+        poolIdx,
+        rankInPool: i + 1,
+        w: s.w, pd: s.pd, pf: s.pf
+      }));
+    }
   });
 
   if (qualifiers.length < 2) {
-    alert("Not enough qualifiers for a bracket.");
+    alert("Not enough teams to build this bracket.");
     return;
   }
 
-  // Seed: pool rank first, then W/PD/PF (basic)
+  // Seed: pool rank first, then W/PD/PF, then name
   qualifiers.sort((a,b)=>{
     if (a.rankInPool !== b.rankInPool) return a.rankInPool - b.rankInPool;
     if (b.w !== a.w) return b.w - a.w;
@@ -427,16 +831,26 @@ function buildBracketFromStandings(){
   const positions = seedPositions(size); // 1..size
   const ordered = positions.map(pos => seededTeamIds[pos-1]);
 
+  if (!state.brackets) state.brackets = { gold: null, silver: null };
+
   if (bracketType === "single"){
-    state.bracket = buildSingleElimBracketFromOrdered(ordered);
+    state.brackets[tier] = buildSingleElimBracketFromOrdered(ordered);
   } else {
-    state.bracket = buildDoubleElimBracketFromOrdered(ordered);
+    state.brackets[tier] = buildDoubleElimBracketFromOrdered(ordered);
   }
 
-  propagateBracketWinners(); // works for single; double has its own propagation too
+  propagateBracketWinnersFor(state.brackets[tier]);
+}
+
+function buildBothBracketsFromStandings(){
+  updateBracketScheduleFromInputs();
+  buildBracketFromStandingsTier("gold");
+  buildBracketFromStandingsTier("silver");
+  // Assign courts/times/refs for the common 16-team (8+8) single-elim layout
+  assignCourtsAndRefsForGoldSilverSingleElim();
   save();
   renderAll();
-  toast(bracketType === "single" ? "Single-elim bracket built" : "Double-elim bracket built");
+  toast("Gold + Silver brackets built");
 }
 
 /* ---------- Single Elim builder (same as before, packaged) ---------- */
@@ -514,15 +928,17 @@ function buildDoubleElimBracketFromOrdered(ordered){
 }
 
 function clearBracket(){
-  state.bracket = null;
+  state.brackets = { gold: null, silver: null };
+  state.activeBracket = "gold";
   save();
   renderAll();
   toast("Bracket cleared");
 }
 
 function setBracketScore(roundIdx, matchIdx, which, val){
-  const m = state.bracket.rounds[roundIdx][matchIdx];
-  const n = val === "" ? null : parseInt(val, 10);
+  const m = getActiveBracketObj().rounds[roundIdx][matchIdx];
+
+      const n = val === "" ? null : parseInt(val, 10);
   if (val !== "" && (!Number.isFinite(n) || n < 0)) return;
   if (which === "a") m.aScore = n;
   else m.bScore = n;
@@ -542,31 +958,28 @@ function winnerOfMatch(m){
   return (m.aScore > m.bScore) ? m.aId : m.bId;
 }
 
-function propagateBracketWinners(){
-  if (!state.bracket) return;
 
-  if (state.bracket.type === "single"){
-    propagateSingle(state.bracket.rounds);
+function propagateBracketWinners(){
+  const b = getActiveBracketObj();
+  if (!b) return;
+  propagateBracketWinnersFor(b);
+}
+
+function propagateBracketWinnersFor(bracket){
+  if (!bracket) return;
+
+  if (bracket.type === "single"){
+    propagateSingle(bracket.rounds);
     return;
   }
 
   // Double elimination propagation
-  const { wb, lb, gf } = state.bracket;
+  const { wb, lb, gf } = bracket;
 
-  // 1) propagate WB like single
   propagateSingle(wb);
-
-  // 2) Feed WB losers into LB, and propagate LB forward.
-  // Rules implemented (standard DE for power-of-two):
-  // - LB round 1 gets losers from WB round 1
-  // - Thereafter: LB alternates between
-  //   (A) "injection" round: losers from next WB round enter
-  //   (B) "advance" round: LB winners play each other
-  // This is a common bracket structure; it covers typical tournaments.
   feedLosersIntoLB(wb, lb);
   propagateSingle(lb);
 
-  // 3) Grand Final: WB champ vs LB champ
   const wbChamp = getBracketChampion(wb);
   const lbChamp = getBracketChampion(lb);
 
@@ -574,36 +987,49 @@ function propagateBracketWinners(){
   gf[0].bId = lbChamp;
   gf[0].winnerId = winnerOfMatch(gf[0]);
 }
-
 function propagateSingle(rounds){
   for (let r=0; r<rounds.length; r++){
+    // compute winners for this round
     for (let i=0; i<rounds[r].length; i++){
       const m = rounds[r][i];
       m.winnerId = winnerOfMatch(m);
     }
+
+    // wire winners into next round (but only clear next-match scores if participants changed)
     if (r < rounds.length - 1){
       const next = rounds[r+1];
-      // clear next participants & scores
-      for (const nm of next){
-        nm.aId = null; nm.bId = null;
-        nm.aScore = null; nm.bScore = null;
-        nm.winnerId = null;
-      }
       const winners = rounds[r].map(m => m.winnerId);
-      for (let j=0; j<winners.length; j++){
-        const w = winners[j];
-        const targetMatch = next[Math.floor(j/2)];
-        if (!targetMatch) continue;
-        if (j % 2 === 0) targetMatch.aId = w;
-        else targetMatch.bId = w;
+
+      for (let j=0; j<next.length; j++){
+        const nm = next[j];
+
+        const newA = winners[j*2] ?? null;
+        const newB = winners[j*2+1] ?? null;
+
+        const sameParticipants = (nm.aId === newA) && (nm.bId === newB);
+
+        nm.aId = newA;
+        nm.bId = newB;
+
+        // If participants changed, previous score is no longer valid.
+        if (!sameParticipants){
+          nm.aScore = null;
+          nm.bScore = null;
+          nm.winnerId = null;
+        } else {
+          // Keep winnerId consistent with any existing scores
+          nm.winnerId = winnerOfMatch(nm);
+        }
       }
     }
   }
+
   // resolve byes after wiring
   for (let r=0; r<rounds.length; r++){
     for (const m of rounds[r]) m.winnerId = winnerOfMatch(m);
   }
 }
+
 
 function matchLoserId(m){
   // byes: no loser
@@ -677,6 +1103,162 @@ function getBracketChampion(rounds){
   return last[0].winnerId || null;
 }
 
+
+/* =========================
+   Bracket scheduling (courts + refs)
+========================= */
+function updateBracketScheduleFromInputs(){
+  if ($("bracketStartTime")) {
+    const parsed = parseTimeToMinutes($("bracketStartTime").value);
+    if (parsed != null) state.bracketSchedule.startMinutes = parsed;
+    $("bracketStartTime").value = formatMinutesToTime(state.bracketSchedule.startMinutes);
+  }
+  if ($("bracketInterval")) {
+    const v = digitsOnlyValue($("bracketInterval").value);
+    const n = Math.max(1, parseInt(v || "45", 10) || 45);
+    state.bracketSchedule.intervalMinutes = n;
+    $("bracketInterval").value = String(n);
+  }
+  if ($("courtCount")) {
+    const v = digitsOnlyValue($("courtCount").value);
+    const n = Math.max(1, parseInt(v || "4", 10) || 4);
+    state.bracketSchedule.courtCount = n;
+    $("courtCount").value = String(n);
+  }
+}
+
+function labelSingleMatch(tier, roundIdx, matchIdx){
+  // Round 0 = QF, 1 = SF, 2 = F for 8 teams (3 rounds)
+  const prefix = (tier === "gold") ? "g" : "s";
+  if (roundIdx === 0) return `${prefix}QF${matchIdx+1}`;
+  if (roundIdx === 1) return `${prefix}SF${matchIdx+1}`;
+  if (roundIdx === 2) return `${prefix}F`;
+  return `${prefix}R${roundIdx+1}M${matchIdx+1}`;
+}
+
+// Assign courts/times/refs for the common 16-team (8 gold + 8 silver), 4-court, single-elim layout.
+// Rule: After the first wave, the LOSER on each court stays to ref the next match on the same court.
+function assignCourtsAndRefsForGoldSilverSingleElim(){
+  const courts = state.bracketSchedule?.courtCount || 4;
+  const start = state.bracketSchedule?.startMinutes ?? (13*60+45);
+  const interval = state.bracketSchedule?.intervalMinutes ?? 45;
+
+  const g = state.brackets?.gold;
+  const s = state.brackets?.silver;
+  if (!g || !s) return;
+  if (g.type !== "single" || s.type !== "single") return;
+  if (!g.rounds || !s.rounds) return;
+  if (g.rounds.length < 3 || s.rounds.length < 3) return;
+  if (g.rounds[0].length !== 4 || s.rounds[0].length !== 4) return; // expect 8-team brackets
+
+  // Clear prior schedule fields
+  ["gold","silver"].forEach(tier=>{
+    const b = state.brackets[tier];
+    for (let r=0; r<b.rounds.length; r++){
+      for (let mi=0; mi<b.rounds[r].length; mi++){
+        const m = b.rounds[r][mi];
+        delete m.court; delete m.timeMinutes; delete m.refPrevMatchId; delete m.label; delete m.refText; delete m.refTeamId;
+      }
+    }
+  });
+
+  // Helper to set fields
+  function setMeta(tier, roundIdx, matchIdx, court, wave){
+    const b = state.brackets[tier];
+    const m = b.rounds[roundIdx][matchIdx];
+    m.court = court;
+    m.timeMinutes = start + (wave-1) * interval;
+    m.label = labelSingleMatch(tier, roundIdx, matchIdx);
+  }
+
+  // Wave plan (no cross-tier ref chaining; keeps gold refs with gold, silver with silver)
+  // Wave 1: Court1 gQF1, Court2 sQF1, Court3 gQF2, Court4 sQF2
+  setMeta("gold", 0, 0, 1, 1);
+  setMeta("silver",0, 0, 2, 1);
+  setMeta("gold", 0, 1, 3, 1);
+  setMeta("silver",0, 1, 4, 1);
+
+  // Wave 2: Court1 gQF3 ref loser(gQF1), Court2 sQF3 ref loser(sQF1), Court3 gQF4 ref loser(gQF2), Court4 sQF4 ref loser(sQF2)
+  setMeta("gold", 0, 2, 1, 2);
+  state.brackets.gold.rounds[0][2].refPrevMatchId = state.brackets.gold.rounds[0][0].id;
+
+  setMeta("silver",0, 2, 2, 2);
+  state.brackets.silver.rounds[0][2].refPrevMatchId = state.brackets.silver.rounds[0][0].id;
+
+  setMeta("gold", 0, 3, 3, 2);
+  state.brackets.gold.rounds[0][3].refPrevMatchId = state.brackets.gold.rounds[0][1].id;
+
+  setMeta("silver",0, 3, 4, 2);
+  state.brackets.silver.rounds[0][3].refPrevMatchId = state.brackets.silver.rounds[0][1].id;
+
+  // Wave 3: Court1 gSF1 ref loser(gQF3), Court2 sSF1 ref loser(sQF3), Court3 gSF2 ref loser(gQF4), Court4 sSF2 ref loser(sQF4)
+  setMeta("gold", 1, 0, 1, 3);
+  state.brackets.gold.rounds[1][0].refPrevMatchId = state.brackets.gold.rounds[0][2].id;
+
+  setMeta("silver",1, 0, 2, 3);
+  state.brackets.silver.rounds[1][0].refPrevMatchId = state.brackets.silver.rounds[0][2].id;
+
+  setMeta("gold", 1, 1, 3, 3);
+  state.brackets.gold.rounds[1][1].refPrevMatchId = state.brackets.gold.rounds[0][3].id;
+
+  setMeta("silver",1, 1, 4, 3);
+  state.brackets.silver.rounds[1][1].refPrevMatchId = state.brackets.silver.rounds[0][3].id;
+
+  // Wave 4: Court1 Gold Final ref loser(gSF1), Court2 Silver Final ref loser(sSF1)
+  setMeta("gold", 2, 0, 1, 4);
+  state.brackets.gold.rounds[2][0].refPrevMatchId = state.brackets.gold.rounds[1][0].id;
+
+  setMeta("silver",2, 0, 2, 4);
+  state.brackets.silver.rounds[2][0].refPrevMatchId = state.brackets.silver.rounds[1][0].id;
+
+  // First-wave refs: assign teams that are NOT playing in Wave 1 (i.e., the teams scheduled for Wave 2)
+  // Gold Wave 1 refs come from Gold QF3/QF4 teams; Silver Wave 1 refs come from Silver QF3/QF4 teams.
+  function teamsInMatch(match){
+    return [match.aId, match.bId].filter(Boolean);
+  }
+  function assignWave1RefsSameTier(tier){
+    const b = state.brackets[tier];
+    const wave1 = [b.rounds[0][0], b.rounds[0][1]];
+    const wave2 = [b.rounds[0][2], b.rounds[0][3]];
+    const candidates = [...teamsInMatch(wave2[0]), ...teamsInMatch(wave2[1])];
+
+    // Assign one ref team per Wave 1 match (avoid duplicates if possible)
+    for (let i=0; i<wave1.length; i++){
+      const refId = candidates[i] ?? null;
+      wave1[i].refTeamId = refId;
+      wave1[i].refText = refId ? (teamById(refId)?.name || "TBD") : "TBD";
+    }
+  }
+  assignWave1RefsSameTier("gold");
+  assignWave1RefsSameTier("silver");
+
+  // If fewer than 4 courts, we still store court numbers 1..4 as above; UI displays them.
+  // If user sets courtCount != 4, we still use the same canonical court mapping for now.
+}
+
+function findSingleMatchById(tier, id){
+  const b = state.brackets?.[tier];
+  if (!b || b.type !== "single") return null;
+  for (const round of b.rounds){
+    for (const m of round){
+      if (m.id === id) return m;
+    }
+  }
+  return null;
+}
+
+function refDisplayForMatch(tier, m){
+  if (m.refText) return m.refText;
+  if (!m.refPrevMatchId) return "TBD";
+  const prev = findSingleMatchById(tier, m.refPrevMatchId);
+  if (!prev) return "TBD";
+  const loserId = matchLoserId(prev);
+  if (loserId) return teamById(loserId)?.name || "—";
+  const lbl = prev.label || "previous match";
+  return `Loser of ${lbl}`;
+}
+
+
 /* =========================
    Rendering
 ========================= */
@@ -739,25 +1321,37 @@ function renderPools(){
         <table>
           <thead>
             <tr>
+              <th class="right">#</th>
+              <th>Time</th>
               <th>Match</th>
+              <th>Refs</th>
+              <th>Off</th>
               <th class="right">Score</th>
             </tr>
           </thead>
           <tbody>
-            ${matches.map(m => {
+            ${matches.map((m, mi) => {
               const a = teamById(m.aId)?.name || "—";
               const b = teamById(m.bId)?.name || "—";
               const as = (m.aScore ?? "");
               const bs = (m.bScore ?? "");
+              const matchNo = mi + 1;
+              const start = (state.schedule && Number.isFinite(state.schedule.startMinutes)) ? state.schedule.startMinutes : 540;
+              const interval = (state.schedule && Number.isFinite(state.schedule.intervalMinutes)) ? state.schedule.intervalMinutes : 45;
+              const timeStr = formatMinutesToTime(start + (matchNo - 1) * interval);
               return `
                 <tr>
+                  <td class="right">${matchNo}</td>
+                  <td>${timeStr}</td>
                   <td>${escapeHtml(a)} vs ${escapeHtml(b)}</td>
+                  <td>${escapeHtml(teamById(m.refId)?.name || "—")}</td>
+                  <td>${escapeHtml(teamById(m.offId)?.name || "—")}</td>
                   <td class="right">
                     <div class="scorebox">
-                      <input type="text" inputmode="numeric" pattern="[0-9]*" value="${as}"
+                      <input type="text" inputmode="numeric" pattern="[0-9]*" min="0" value="${as}"
                         data-pool="${poolIdx}" data-match="${m.id}" data-side="a" placeholder="A"/>
                       <span class="muted">-</span>
-                      <input type="text" inputmode="numeric" pattern="[0-9]*" value="${bs}"
+                      <input type="text" inputmode="numeric" pattern="[0-9]*" min="0" value="${bs}"
                         data-pool="${poolIdx}" data-match="${m.id}" data-side="b" placeholder="B"/>
                     </div>
                   </td>
@@ -773,11 +1367,11 @@ function renderPools(){
   // wire score inputs
   area.querySelectorAll('input[data-pool][data-match]').forEach(inp => {
     inp.addEventListener("change", () => {
-      digitsOnly(inp);
       const poolIdx = parseInt(inp.getAttribute("data-pool"), 10);
       const matchId = inp.getAttribute("data-match");
       const side = inp.getAttribute("data-side");
-      const val = inp.value;
+      let val = digitsOnlyValue(inp.value);
+      if (inp.value !== val) inp.value = val;
 
       const matches = state.poolMatches[poolIdx] || [];
       const m = matches.find(x => x.id === matchId);
@@ -794,80 +1388,100 @@ function renderPools(){
       renderPools();
       renderBracket();
     });
-    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
+
+    inp.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") inp.blur();
+    });
   });
 }
 
 function renderBracket(){
-  const area = $("bracketArea");
-  if (!state.bracket){
+  renderBracketTier("gold");
+  renderBracketTier("silver");
+}
+
+function renderBracketTier(tier){
+  const area = tier === "gold" ? $("goldBracketArea") : $("silverBracketArea");
+  const meta = tier === "gold" ? $("goldBracketMeta") : $("silverBracketMeta");
+  const b = (state.brackets && state.brackets[tier]) ? state.brackets[tier] : null;
+
+  if (!area || !meta) return;
+
+  if (!b){
     area.classList.add("muted");
-    area.innerHTML = "No bracket yet.";
-    $("bracketMeta").textContent = "";
+    area.innerHTML = tier === "gold" ? "No gold bracket yet." : "No silver bracket yet.";
+    meta.textContent = "";
     return;
   }
 
-  const b = state.bracket;
   area.classList.remove("muted");
 
   if (b.type === "single"){
-    $("bracketMeta").textContent = `${b.rounds.length} rounds • Single-elim`;
-    area.innerHTML = renderRoundsUI(b.rounds, "Single Elimination");
-    wireRoundInputs(area, (r,m,side,val)=>setBracketScoreSingle(r,m,side,val));
+    meta.textContent = `${b.rounds.length} rounds • Single-elim`;
+    area.innerHTML = renderRoundsUI(b.rounds, tier);
+    wireRoundInputs(area, (r,m,side,val)=>setBracketScoreSingle(tier, r, m, side, val));
     return;
   }
 
   // Double-elim
   const wb = b.wb, lb = b.lb, gf = b.gf;
-  $("bracketMeta").textContent = `WB ${wb.length} rounds • LB ${lb.length} rounds • Double-elim`;
+  meta.textContent = `WB ${wb.length} rounds • LB ${lb.length} rounds • Double-elim`;
 
   area.innerHTML = `
     <div class="bracketWrap">
       <div class="bracket">
         <div class="round">
           <h3>Winners Bracket</h3>
-          ${renderRoundsColumns(wb, "WB")}
+          ${renderRoundsColumns(wb, "WB", tier)}
         </div>
         <div class="round">
           <h3>Losers Bracket</h3>
-          ${renderRoundsColumns(lb, "LB")}
+          ${renderRoundsColumns(lb, "LB", tier)}
         </div>
         <div class="round">
           <h3>Grand Final</h3>
-          ${renderSingleRoundColumn(gf, "GF")}
+          ${renderSingleRoundColumn(gf, "GF", tier)}
         </div>
       </div>
     </div>
   `;
 
   // wire WB/LB/GF inputs
-  area.querySelectorAll('input[data-br][data-r][data-m]').forEach(inp => {
-    inp.addEventListener("input", () => {
+  area.querySelectorAll('input[data-tier][data-br][data-r][data-m]').forEach(inp => {
+    inp.addEventListener("change", () => {
+      digitsOnly(inp);
+      const t = inp.getAttribute("data-tier");
       const br = inp.getAttribute("data-br"); // WB/LB/GF
       const r = parseInt(inp.getAttribute("data-r"), 10);
       const m = parseInt(inp.getAttribute("data-m"), 10);
       const side = inp.getAttribute("data-side");
-      setBracketScoreDE(br, r, m, side, inp.value);
+      setBracketScoreDE(t, br, r, m, side, inp.value);
     });
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
   });
 }
+function setBracketScoreSingle(tier, roundIdx, matchIdx, which, val){
+  const b = state.brackets ? state.brackets[tier] : null;
+  if (!b || !b.rounds) return;
+  const m = b.rounds[roundIdx][matchIdx];
 
-function setBracketScoreSingle(roundIdx, matchIdx, which, val){
-  const m = state.bracket.rounds[roundIdx][matchIdx];
   const n = val === "" ? null : parseInt(val, 10);
   if (val !== "" && (!Number.isFinite(n) || n < 0)) return;
   if (which === "a") m.aScore = n; else m.bScore = n;
+
   propagateBracketWinners();
   save();
   renderAll();
 }
+function setBracketScoreDE(tier, whichBracket, roundIdx, matchIdx, which, val){
+  const b = state.brackets ? state.brackets[tier] : null;
+  if (!b) return;
 
-function setBracketScoreDE(whichBracket, roundIdx, matchIdx, which, val){
-  const b = state.bracket;
   let m;
   if (whichBracket === "WB") m = b.wb[roundIdx][matchIdx];
   else if (whichBracket === "LB") m = b.lb[roundIdx][matchIdx];
   else m = b.gf[matchIdx]; // GF is single match array
+
   const n = val === "" ? null : parseInt(val, 10);
   if (val !== "" && (!Number.isFinite(n) || n < 0)) return;
   if (which === "a") m.aScore = n; else m.bScore = n;
@@ -876,16 +1490,15 @@ function setBracketScoreDE(whichBracket, roundIdx, matchIdx, which, val){
   save();
   renderAll();
 }
-
 /* ---- UI rendering helpers for brackets ---- */
-function renderRoundsUI(rounds, title){
+function renderRoundsUI(rounds, tier){
   return `
     <div class="bracketWrap">
       <div class="bracket">
         ${rounds.map((round, rIdx) => `
           <div class="round">
             <h3>${roundName(rounds.length, rIdx)}</h3>
-            ${round.map((m, mIdx) => renderMatchCard(m, { br:"S", r:rIdx, m:mIdx })).join("")}
+            ${round.map((m, mIdx) => renderMatchCard(m, { br:"S", tier, r:rIdx, m:mIdx })).join("")}
           </div>
         `).join("")}
       </div>
@@ -893,17 +1506,17 @@ function renderRoundsUI(rounds, title){
   `;
 }
 
-function renderRoundsColumns(rounds, brTag){
+function renderRoundsColumns(rounds, brTag, tier){
   return rounds.map((round, rIdx) => `
     <div style="margin-bottom:12px;">
       <div class="small muted" style="margin:8px 0;">Round ${rIdx+1}</div>
-      ${round.map((m, mIdx) => renderMatchCard(m, { br: brTag, r:rIdx, m:mIdx })).join("")}
+      ${round.map((m, mIdx) => renderMatchCard(m, { br: brTag, tier, r:rIdx, m:mIdx })).join("")}
     </div>
   `).join("");
 }
 
-function renderSingleRoundColumn(round, brTag){
-  return round.map((m, mIdx) => renderMatchCard(m, { br: brTag, r:0, m:mIdx })).join("");
+function renderSingleRoundColumn(round, brTag, tier){
+  return round.map((m, mIdx) => renderMatchCard(m, { br: brTag, tier, r:0, m:mIdx })).join("");
 }
 
 function renderMatchCard(m, meta){
@@ -918,8 +1531,8 @@ function renderMatchCard(m, meta){
 
   const dataAttr =
     meta.br === "S"
-      ? `data-r="${meta.r}" data-m="${meta.m}"`
-      : `data-br="${meta.br}" data-r="${meta.r}" data-m="${meta.m}"`;
+      ? `data-tier="${meta.tier}" data-r="${meta.r}" data-m="${meta.m}"`
+      : `data-tier="${meta.tier}" data-br="${meta.br}" data-r="${meta.r}" data-m="${meta.m}"`;
 
   return `
     <div class="match">
@@ -928,7 +1541,7 @@ function renderMatchCard(m, meta){
           <span class="seed">A</span>
           <span class="${aWinner ? "winner" : ""}">${escapeHtml(aName || "BYE")}</span>
         </div>
-        <input ${disabled} type="number" min="0" value="${as}"
+        <input ${disabled} type="text" inputmode="numeric" pattern="[0-9]*" min="0" value="${as}"
           ${dataAttr} data-side="a" placeholder=""/>
       </div>
       <div class="line">
@@ -936,8 +1549,14 @@ function renderMatchCard(m, meta){
           <span class="seed">B</span>
           <span class="${bWinner ? "winner" : ""}">${escapeHtml(bName || "BYE")}</span>
         </div>
-        <input ${disabled} type="number" min="0" value="${bs}"
+        <input ${disabled} type="text" inputmode="numeric" pattern="[0-9]*" min="0" value="${bs}"
           ${dataAttr} data-side="b" placeholder=""/>
+      </div>
+      
+      <div class="small" style="margin-top:8px;">
+        ${m.court ? `Court <b>${m.court}</b>` : ``}
+        ${m.timeMinutes!=null ? ` • <b>${formatMinutesToTime(m.timeMinutes)}</b>` : ``}
+        ${(meta && meta.tier && (m.refPrevMatchId || m.refText)) ? ` • Ref: <b>${escapeHtml(refDisplayForMatch(meta.tier, m))}</b>` : ``}
       </div>
       <div class="small" style="margin-top:8px;">
         ${renderMatchStatus(m)}
@@ -947,13 +1566,15 @@ function renderMatchCard(m, meta){
 }
 
 function wireRoundInputs(area, setter){
-  area.querySelectorAll('input[data-r][data-m]').forEach(inp => {
-    inp.addEventListener("input", () => {
+  area.querySelectorAll('input[data-tier][data-r][data-m]').forEach(inp => {
+    inp.addEventListener("change", () => {
+      digitsOnly(inp);
       const r = parseInt(inp.getAttribute("data-r"), 10);
       const m = parseInt(inp.getAttribute("data-m"), 10);
       const side = inp.getAttribute("data-side");
       setter(r, m, side, inp.value);
     });
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); });
   });
 }
 
@@ -971,7 +1592,6 @@ function renderAll(){
   renderTeamList();
   renderPools();
   renderBracket();
-  save();
 }
 
 /* =========================
@@ -1018,8 +1638,6 @@ function escapeHtml(s){
     .replaceAll("'","&#039;");
 }
 
-function digitsOnly(el){ el.value = (el.value || '').replace(/[^\d]/g, ''); }
-
 /* =========================
    Events
 ========================= */
@@ -1027,25 +1645,81 @@ $("addTeamBtn").addEventListener("click", addTeam);
 $("teamName").addEventListener("keydown", (e)=>{ if(e.key==="Enter") addTeam(); });
 
 $("generateBtn").addEventListener("click", generatePools);
-$("buildBracketBtn").addEventListener("click", buildBracketFromStandings);
-$("clearBracketBtn").addEventListener("click", clearBracket);
+$("buildBracketsBtn")?.addEventListener("click", buildBothBracketsFromStandings);
+$("clearBracketsBtn")?.addEventListener("click", clearBracket);
 
-$("resetBtn").addEventListener("click", () => {
-  if (!confirm("Reset everything (teams, pools, scores, bracket)?")) return;
-  state.teams = [];
-  state.pools = [];
-  state.poolMatches = {};
-  state.bracket = null;
-  save();
-  renderAll();
-  toast("Reset done");
-});
+const resetBtn = $("resetBtn");
+if (resetBtn) {
+  resetBtn.addEventListener("click", () => {
+    if (!confirm("Reset everything (teams, pools, scores, bracket)?")) return;
+    state.teams = [];
+    state.pools = [];
+    state.poolMatches = {};
+    state.brackets = { gold: null, silver: null };
+  state.activeBracket = "gold";
+    save();
+    renderAll();
+    toast("Reset done");
+  });
+}
+
 
 /* =========================
    Init
 ========================= */
 load();
+
+// Initialize schedule inputs
+if ($("startTime") && state.schedule) $("startTime").value = formatMinutesToTime(state.schedule.startMinutes);
+if ($("matchInterval") && state.schedule) $("matchInterval").value = String(state.schedule.intervalMinutes);
+
+// Initialize bracket schedule inputs
+if ($("bracketStartTime") && state.bracketSchedule) $("bracketStartTime").value = formatMinutesToTime(state.bracketSchedule.startMinutes);
+if ($("bracketInterval") && state.bracketSchedule) $("bracketInterval").value = String(state.bracketSchedule.intervalMinutes);
+if ($("courtCount") && state.bracketSchedule) $("courtCount").value = String(state.bracketSchedule.courtCount);
+
+
 renderAll();
+
+// -------------------------
+// Page navigation
+// -------------------------
+function setActivePage(page){
+  const pages = ['setup','pools','bracket'];
+  for (const p of pages){
+    document.getElementById('page-' + p).classList.toggle('active', p === page);
+    document.getElementById('tab-' + p).classList.toggle('active', p === page);
+  }
+  try { sessionStorage.setItem('vb_active_page', page); } catch {}
+}
+
+document.getElementById('tab-setup').addEventListener('click', ()=>setActivePage('setup'));
+document.getElementById('tab-pools').addEventListener('click', ()=>setActivePage('pools'));
+document.getElementById('tab-bracket').addEventListener('click', ()=>setActivePage('bracket'));
+
+// Top reset button
+const resetTop = document.getElementById('resetBtnTop');
+resetTop.addEventListener('click', () => {
+  if (!confirm('Reset everything (teams, pools, scores, bracket)?')) return;
+  state.teams = [];
+  state.pools = [];
+  state.poolMatches = {};
+  state.brackets = { gold: null, silver: null };
+  state.activeBracket = "gold";
+  save();
+  renderAll();
+  toast('Reset done');
+  setActivePage('setup');
+});
+
+// Restore last page
+try {
+  const last = sessionStorage.getItem('vb_active_page');
+  if (last) setActivePage(last);
+} catch {}
+
+// -------------------------
+
 </script>
 </body>
 </html>
