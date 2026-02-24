@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Volleyball Tournament Manager</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <style>
 :root { --border:#ddd; --muted:#666; --bg:#fafafa; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin:0; background:var(--bg); }
@@ -371,6 +373,9 @@ function initFirebase() {
   try {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
+    db.collection("test").doc("ping").set({ time: Date.now() })
+      .then(() => console.log("✅ Firestore connected"))
+      .catch(e => console.error("❌ Firestore failed:", e));
     docRef = db.collection("tournaments").doc(tournamentId);
     firebaseEnabled = true;
     return true;
